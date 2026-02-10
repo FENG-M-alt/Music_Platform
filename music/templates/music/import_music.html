@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>导入本地音乐 | 音乐播放平台</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .back { margin-bottom: 20px; color: #007bff; text-decoration: none; }
+        .form-container { background: #f8f9fa; padding: 30px; border-radius: 8px; }
+        h2 { margin-top: 0; }
+        form { margin-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .tips { margin-top: 20px; padding: 10px; background: #fff3cd; color: #856404; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <a href="{% url 'music_list' %}" class="back">← 返回列表</a>
+
+    <div class="form-container">
+        <h2>批量导入本地音乐</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="music_folder">本地音乐文件夹路径：</label>
+                <input type="text" id="music_folder" name="music_folder" placeholder="例如：C:\Music 或 /home/user/music">
+            </div>
+            <button type="submit">开始导入</button>
+        </form>
+
+        <div class="tips">
+            <strong>使用提示：</strong>
+            <ul>
+                <li>支持的格式：mp3、wav、flac、ogg、m4a</li>
+                <li>推荐文件命名格式：歌手-歌曲名.扩展名（例如：周杰伦-晴天.mp3）</li>
+                <li>导入时会自动跳过已存在的音乐文件</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

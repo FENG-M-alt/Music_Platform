@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>音乐播放平台 - 首页</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入全局基础CSS -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <!-- 引入列表页专属CSS -->
+    <link rel="stylesheet" href="{% static 'css/music_list.css' %}">
+</head>
+<body>
+    <!-- 眉页音频播放器容器 -->
+    <div id="header-audio-player" class="header-audio-player">
+        <div class="player-content">
+            <div class="now-playing">
+                <div class="playing-icon">🎵</div>
+                <div class="playing-info">
+                    <div id="now-playing-name" class="playing-name">未选择歌曲</div>
+                    <div id="now-playing-singer" class="playing-singer">-</div>
+                </div>
+            </div>
+            <div class="player-controls">
+                <button id="header-prev-btn" class="control-btn" title="上一首">⏮</button>
+                <button id="header-play-pause-btn" class="control-btn play-pause-btn" title="播放">▶</button>
+                <button id="header-next-btn" class="control-btn" title="下一首">⏭</button>
+                <div class="progress-container">
+                    <input type="range" id="header-progress-bar" class="progress-bar" min="0" max="100" value="0">
+                    <div class="time-display">
+                        <span id="header-current-time">0:00</span> / 
+                        <span id="header-duration">0:00</span>
+                    </div>
+                </div>
+                <div class="volume-container">
+                    <span class="volume-icon">🔊</span>
+                    <input type="range" id="header-volume-bar" class="volume-bar" min="0" max="100" value="100">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全局音频播放器（隐藏，仅用于音频播放逻辑） -->
+    <audio id="global-audio" preload="metadata" style="display: none;"></audio>
+
+    <div class="header">
+        <h1>音乐播放平台</h1>
+        <a href="{% url 'import_music' %}" class="btn">导入本地音乐</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message message-success">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if musics %}
+        <div class="table-container">
+            <table class="music-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>歌曲名</th>
+                        <th>歌手</th>
+                        <th>专辑</th>
+                        <th>添加时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for music in musics %}
+                    <tr class="music-item" 
+                        data-music-id="{{ music.id }}"
+                        data-music-src="{% url 'serve_music' music.id %}"  <!-- 使用文件服务URL -->
+                        data-music-name="{{ music.name }}"
+                        data-music-singer="{{ music.singer }}"
+                        data-music-album="{{ music.album|default:'未知专辑' }}"
+                        data-file-exists="{% if music.file_path %}true{% else %}false{% endif %}">
+                        <!-- 修正序号：显示全局序号（而非每页从1开始） -->
+                        <td class="index">{{ musics.start_index|add:forloop.counter0 }}</td>
+                        <td class="name">{{ music.name }}</td>
+                        <td class="singer">{{ music.singer }}</td>
+                        <td class="album">{{ music.album|default:"未知专辑" }}</td>
+                        <td class="time">{{ music.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="actions">
+                            <a href="#" class="play-link" data-music-id="{{ music.id }}">播放</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页控件 -->
+        <div class="pagination">
+            <!-- 上一页 -->
+            {% if musics.has_previous %}
+                <a href="?page={{ musics.previous_page_number }}">上一页</a>
+            {% else %}
+                <a href="#" class="disabled">上一页</a>
+            {% endif %}
+
+            <!-- 页码列表（简化版：只显示当前页、前1页、后1页） -->
+            {% for num in musics.paginator.page_range %}
+                {% if num == musics.number %}
+                    <a href="?page={{ num }}" class="active">{{ num }}</a>
+                {% elif num > musics.number|add:-2 and num < musics.number|add:2 %}
+                    <a href="?page={{ num }}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            <!-- 下一页 -->
+            {% if musics.has_next %}
+                <a href="?page={{ musics.next_page_number }}">下一页</a>
+            {% else %}
+                <a href="#" class="disabled">下一页</a>
+            {% endif %}
+
+            <!-- 页码信息（可选） -->
+            <span class="page-info">
+                共 {{ musics.paginator.count }} 首 / {{ musics.paginator.num_pages }} 页
+            </span>
+        </div>
+
+    {% else %}
+        <div class="empty-tip">
+            <h3>暂无音乐文件</h3>
+            <p><a href="{% url 'import_music' %}" class="btn">点击导入本地音乐</a></p>
+        </div>
+    {% endif %}
+
+    <!-- 引入JavaScript文件 -->
+    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/music_play.js' %}"></script>
+    <script src="{% static 'js/header_player.js' %}"></script>
+    
+    <script>
+    // 页面加载后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('页面加载完成，共 {{ musics.paginator.count }} 首歌曲');
+        
+        // 添加文件存在性检查（可选）
+        document.querySelectorAll('.music-item').forEach(function(row) {
+            const exists = row.dataset.fileExists === 'true';
+            if (!exists) {
+                row.style.opacity = '0.6';
+                row.querySelector('.play-link').style.opacity = '0.5';
+                row.querySelector('.play-link').style.pointerEvents = 'none';
+                row.title = '文件不存在或路径错误';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
