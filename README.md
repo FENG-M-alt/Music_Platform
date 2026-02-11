@@ -6,5 +6,9 @@
 - 我的数据库是在本地，所以有关数据库的配置我并没有修改
 # 使用说明
 - 你得有一个本地的音乐库并在setting.py中配置你的媒体路径
+- 编辑import_music_file.py中有关你的本地音乐库相关内容，让其把信息同步到你的数据库中
+# 呈现效果
+<img width="1231" height="847" alt="屏幕截图 2026-02-11 201028" src="https://github.com/user-attachments/assets/5d2005d7-62be-447f-8a1b-da84f61e790d" />
+
 # 免责声明
 - 项目纯属整活，没有任何价值
