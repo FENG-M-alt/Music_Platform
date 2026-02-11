@@ -1,5 +1,7 @@
 from django.db import models
-from datetime import datetime
+from django.utils import timezone
+import os
+from .utils import get_music_file_path
 # Create your models here.
 
 class Music(models.Model):
@@ -9,7 +11,7 @@ class Music(models.Model):
     album = models.CharField(max_length=100, blank=True, null=True, verbose_name="专辑")
     file_path = models.CharField(max_length=500, blank=True, null=True, verbose_name="文件路径")
     created_at = models.DateTimeField(
-        default=datetime.now,  # 注意：不要加括号！
+        default=timezone.now,
         blank=True,
         verbose_name="添加时间"
     )
@@ -26,7 +28,18 @@ class Music(models.Model):
     def file_size(self):
         """获取文件大小(MB)"""
         try:
-            size = self.file.size / (1024 * 1024)
+            if not self.file_path:
+                return 0
+            size = os.path.getsize(self.file_path) / (1024 * 1024)
             return round(size, 2)
-        except:
+        except Exception:
             return 0
+
+    @property
+    def file_exists(self):
+        """返回文件是否存在（用于模板判断）"""
+        try:
+            path = get_music_file_path(self)
+            return bool(path and os.path.exists(path))
+        except Exception:
+            return False

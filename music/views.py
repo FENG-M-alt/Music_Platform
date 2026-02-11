@@ -1,12 +1,13 @@
 # Create your views here.
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse, FileResponse
+from django.http import HttpResponseRedirect, HttpResponse, FileResponse, Http404, JsonResponse
 from django.urls import reverse
 from django.contrib import messages
 import os
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .models import Music
 from .utils import get_music_file_path, get_content_type
+from django.conf import settings
 
 # 支持的音频格式
 SUPPORTED_FORMATS = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'wma']
@@ -39,42 +40,105 @@ def music_list(request):
     # 5. 传递分页数据到模板
     return render(request, 'music/music_list.html', context)
 
-def serve_music(request, music_id):
-    """提供音乐文件服务 - 处理绝对路径"""
-    music = get_object_or_404(Music, id=music_id)
-    
-    # 获取真实文件路径
-    file_path = get_music_file_path(music)
-    
-    if not file_path:
-        # 尝试从数据库中直接获取路径
-        if music.file_path and os.path.exists(music.file_path):
-            file_path = music.file_path
-        else:
-            return HttpResponse(f'文件不存在或路径错误: {music.file_path}', status=404)
-    
+def play_music(request, music_id):
+    """
+    播放音乐文件
+    现在使用流式响应，支持音频播放器的进度条和缓冲
+    """
     try:
-        # 使用FileResponse，支持大文件
-        response = FileResponse(
-            open(file_path, 'rb'),
-            content_type=get_content_type(file_path)
+        music = Music.objects.get(id=music_id)
+    except Music.DoesNotExist:
+        raise Http404("音乐不存在")
+    
+    # 先解析真实文件路径（支持相对/绝对路径修复）
+    file_path = get_music_file_path(music)
+
+    if not file_path:
+        return JsonResponse({'error': '文件不存在或路径无效'}, status=404)
+
+    # 获取文件大小
+    file_size = os.path.getsize(file_path)
+
+    # 根据文件名获取 MIME 类型
+    content_type = get_content_type(file_path)
+    
+    # 处理范围请求（支持进度条和跳转）
+    range_header = request.headers.get('Range', '').strip()
+    range_bytes = range_header.startswith('bytes=')
+
+    if range_bytes:
+        # 解析范围请求，支持单段 range（不支持多段）并处理后缀范围
+        try:
+            raw = range_header[6:]
+            # 不支持多段 Range
+            if ',' in raw:
+                return HttpResponse('Multiple ranges not supported', status=400)
+
+            start_str, end_str = raw.split('-', 1)
+
+            if start_str == '' and end_str:
+                # 后缀范围 bytes=-N 表示最后 N 个字节
+                suffix_len = int(end_str)
+                if suffix_len <= 0:
+                    return HttpResponse(status=416)
+                if suffix_len >= file_size:
+                    range_start = 0
+                else:
+                    range_start = file_size - suffix_len
+                range_end = file_size - 1
+            else:
+                # 正常范围 start-end，其中 end 可省略
+                range_start = int(start_str) if start_str else 0
+                range_end = int(end_str) if end_str else file_size - 1
+
+            # 验证范围
+            if range_start >= file_size or range_start < 0:
+                return HttpResponse(status=416)
+            if range_end >= file_size:
+                range_end = file_size - 1
+            if range_start > range_end:
+                return HttpResponse(status=416)
+
+        except ValueError:
+            # Range 格式错误
+            return HttpResponse('Invalid Range header', status=400)
+
+        length = range_end - range_start + 1
+
+        # 打开文件并跳转到指定位置
+        with open(file_path, 'rb') as fh:
+            fh.seek(range_start)
+            chunk = fh.read(length)
+
+        # 创建部分响应
+        response = HttpResponse(
+            chunk,
+            status=206,
+            content_type=content_type
         )
-        
-        # 设置文件名
-        filename = os.path.basename(file_path)
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
-        
-        # 添加CORS头，允许跨域请求（如果需要）
-        response['Access-Control-Allow-Origin'] = '*'
-        
-        return response
-        
-    except PermissionError:
-        return HttpResponse('没有权限访问文件', status=403)
-    except FileNotFoundError:
-        return HttpResponse('文件不存在', status=404)
-    except Exception as e:
-        return HttpResponse(f'读取文件失败: {str(e)}', status=500)
+        response['Content-Length'] = str(length)
+        response['Content-Range'] = f'bytes {range_start}-{range_end}/{file_size}'
+        response['Accept-Ranges'] = 'bytes'
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+    else:
+        # 完整文件响应：使用 FileResponse 能更高效地流式传输并正确关闭文件句柄
+        file = open(file_path, 'rb')
+        response = FileResponse(file, content_type=content_type)
+        response['Content-Length'] = str(file_size)
+        response['Accept-Ranges'] = 'bytes'
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+    
+    return response
+
+def check_file_exists(request, music_id):
+    """检查文件是否存在（AJAX调用）"""
+    try:
+        music = Music.objects.get(id=music_id)
+        file_path = get_music_file_path(music)
+        exists = bool(file_path and os.path.exists(file_path))
+        return JsonResponse({'exists': exists, 'path': file_path or ''})
+    except Music.DoesNotExist:
+        return JsonResponse({'exists': False}, status=404)
 
 def import_music(request):
     """批量导入本地音乐文件"""

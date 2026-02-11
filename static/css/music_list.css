@@ -642,3 +642,25 @@
         transform: rotate(360deg);
     }
 }
+
+/* 文件状态样式 */
+.status-ok {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.status-error {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.disabled-link {
+    color: #999;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
+.music-item[data-file-exists="false"] {
+    opacity: 0.6;
+    background-color: #ffeaea;
+}

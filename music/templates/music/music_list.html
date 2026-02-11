@@ -66,6 +66,7 @@
                         <th>歌手</th>
                         <th>专辑</th>
                         <th>添加时间</th>
+                        <th>文件状态</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -73,19 +74,30 @@
                     {% for music in musics %}
                     <tr class="music-item" 
                         data-music-id="{{ music.id }}"
-                        data-music-src="{% url 'serve_music' music.id %}"  <!-- 使用文件服务URL -->
+                        data-music-src="{% url 'play_music' music.id %}"
                         data-music-name="{{ music.name }}"
                         data-music-singer="{{ music.singer }}"
                         data-music-album="{{ music.album|default:'未知专辑' }}"
-                        data-file-exists="{% if music.file_path %}true{% else %}false{% endif %}">
+                        {% if not music.file_exists %}data-file-exists="false"{% endif %}>
                         <!-- 修正序号：显示全局序号（而非每页从1开始） -->
                         <td class="index">{{ musics.start_index|add:forloop.counter0 }}</td>
                         <td class="name">{{ music.name }}</td>
                         <td class="singer">{{ music.singer }}</td>
                         <td class="album">{{ music.album|default:"未知专辑" }}</td>
                         <td class="time">{{ music.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="status">
+                            {% if music.file_exists %}
+                                <span class="status-ok">✓ 文件存在</span>
+                            {% else %}
+                                <span class="status-error">✗ 文件丢失</span>
+                            {% endif %}
+                        </td>
                         <td class="actions">
-                            <a href="#" class="play-link" data-music-id="{{ music.id }}">播放</a>
+                            {% if music.file_exists %}
+                                <a href="#" class="play-link" data-music-id="{{ music.id }}">播放</a>
+                            {% else %}
+                                <span class="disabled-link">无法播放</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -136,22 +148,25 @@
     <script src="{% static 'js/music_play.js' %}"></script>
     <script src="{% static 'js/header_player.js' %}"></script>
     
+    <!-- CSRF token 用于AJAX请求 -->
     <script>
-    // 页面加载后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('页面加载完成，共 {{ musics.paginator.count }} 首歌曲');
-        
-        // 添加文件存在性检查（可选）
-        document.querySelectorAll('.music-item').forEach(function(row) {
-            const exists = row.dataset.fileExists === 'true';
-            if (!exists) {
-                row.style.opacity = '0.6';
-                row.querySelector('.play-link').style.opacity = '0.5';
-                row.querySelector('.play-link').style.pointerEvents = 'none';
-                row.title = '文件不存在或路径错误';
+        // 获取CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
             }
-        });
-    });
+            return cookieValue;
+        }
+        
+        const csrftoken = getCookie('csrftoken');
     </script>
 </body>
 </html>
