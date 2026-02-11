@@ -148,16 +148,21 @@ class MusicPlayer {
             console.error('音频元素未找到');
             return false;
         }
+        // 兼容不同来源的字段命名（dataset 或 后端数据）
+        const musicId = musicData.musicId || musicData.id || musicData['music-id'] || musicData['id'];
+        const musicSrc = musicData.musicSrc || musicData.src || musicData['music-src'] || musicData['src'];
+        const musicName = musicData.musicName || musicData.name || musicData['music-name'] || musicData['name'];
+        const musicSinger = musicData.musicSinger || musicData.singer || musicData['music-singer'] || musicData['singer'];
 
         // 检查文件是否存在标记
-        const row = document.querySelector(`[data-music-id="${musicData.musicId}"]`);
+        const row = document.querySelector(`[data-music-id="${musicId}"]`);
         if (row && row.dataset.fileExists === 'false') {
             this.showError('文件不存在，无法播放');
             return false;
         }
 
-        // 获取文件URL
-        const fileSrc = musicData.musicSrc;
+        // 构建播放URL - 使用 Django URL 或传入的 src
+        const fileSrc = musicSrc || `/play/${musicId}`;
 
         if (!fileSrc) {
             console.error('没有有效的文件路径');
@@ -165,21 +170,21 @@ class MusicPlayer {
             return false;
         }
 
-        console.log('播放音乐:', musicData.musicName, 'URL:', fileSrc);
+        console.log('播放音乐:', musicName, 'URL:', fileSrc);
 
         // 如果已经在播放同一首歌，直接返回
-        if (this.currentMusicId === musicData.musicId && !this.audio.paused) {
+        if (this.currentMusicId === String(musicId) && !this.audio.paused) {
             console.log('已在播放同一首歌');
             return true;
         }
 
         try {
             // 更新当前播放信息
-            this.currentMusicId = musicData.musicId;
+            this.currentMusicId = String(musicId);
 
             // 查找索引
             if (index === -1) {
-                this.currentIndex = this.findIndexById(musicData.musicId);
+                this.currentIndex = this.findIndexById(String(musicId));
             } else {
                 this.currentIndex = index;
             }
@@ -190,14 +195,20 @@ class MusicPlayer {
             this.audio.pause();
             this.isPlaying = false;
 
-            // 设置音频源
-            this.audio.src = fileSrc;
-            this.audio.dataset.currentId = musicData.musicId;
+            // 设置音频源 - 确保是绝对URL
+            let audioUrl = fileSrc;
+            if (!audioUrl.startsWith('http://') && !audioUrl.startsWith('https://')) {
+                // 如果是相对路径，添加当前域名
+                audioUrl = window.location.origin + (audioUrl.startsWith('/') ? audioUrl : '/' + audioUrl);
+            }
+
+            this.audio.src = audioUrl;
+            this.audio.dataset.currentId = String(musicId);
 
             // 更新显示信息
             this.updateDisplay({
-                name: musicData.musicName,
-                singer: musicData.musicSinger
+                name: musicName,
+                singer: musicSinger
             });
 
             // 高亮当前播放项
@@ -215,12 +226,20 @@ class MusicPlayer {
             }).catch(error => {
                 console.error('播放失败:', error);
 
+                // 详细错误信息
+                if (error.name === 'NotSupportedError') {
+                    this.showError('浏览器不支持该音频格式');
+                } else if (error.name === 'NetworkError') {
+                    this.showError('网络错误，请检查文件路径');
+                } else {
+                    this.showError('播放失败，请检查音频文件');
+                }
+
                 // 尝试重新加载
                 setTimeout(() => {
                     this.audio.load();
                     this.audio.play().catch(e => {
                         console.error('重试播放失败:', e);
-                        this.showError('播放失败，请检查网络或文件');
                     });
                 }, 500);
 
