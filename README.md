@@ -1,2 +1,8 @@
-# Music_Platform
-This is a new hub
+# Music_Platform（音乐播放平台）
+这是我的一个django项目
+# 注意事项
+- 我的媒体文件在我的d盘中，我在setting.py中设置了我的媒体文件路径
+- 数据库使用的是mysql，并且在setting.py中配置好了接口，需要的话请自行更改
+- 我的数据库是在本地，所以有关数据库的配置我并没有修改
+# 免责声明
+- 项目纯属整活，没有任何价值
