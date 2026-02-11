@@ -1,12 +1,12 @@
 # Music_Platform（音乐播放平台）
 - 这是我的一个django5项目
 # 注意事项
-- 我的媒体文件在我的d盘中，我在setting.py中设置了我的媒体文件路径
-- 数据库使用的是mysql，并且在setting.py中配置好了接口，需要的话请自行更改
+- 我的媒体文件在我的d盘中，我在**setting.py**中设置了我的媒体文件路径
+- 数据库使用的是mysql，并且在**setting.py**中配置好了接口，需要的话请自行更改
 - 我的数据库是在本地，所以有关数据库的配置我并没有修改
 # 使用说明
-- 你得有一个本地的音乐库并在setting.py中配置你的媒体路径
-- 编辑import_music_file.py中有关你的本地音乐库相关内容，让其把信息同步到你的数据库中
+- 你得有一个本地的音乐库并在**setting.py**中配置你的媒体路径
+- 编辑**import_music_file.py**中有关你的本地音乐库相关内容，让其把信息同步到你的数据库中
 # 呈现效果
 <img width="1231" height="847" alt="屏幕截图 2026-02-11 201028" src="https://github.com/user-attachments/assets/5d2005d7-62be-447f-8a1b-da84f61e790d" />
 
