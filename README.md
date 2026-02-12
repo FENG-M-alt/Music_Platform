@@ -13,6 +13,7 @@
   * 在[Ngrok]([https://ngrok.com "Ngrok官网")上找到**Your Authtoken**获取你的令牌
   * 下载Ngrok，启动终端运行`ngrok config add-authtoken 你的令牌`
   * 在本地运行你的项目后，打开ngrok运行`ngrok http 8000`
+  * 注意首次用内网穿透访问的话可能需要你同意一些事项，直接继续访问就可以了
 # 呈现效果
 <img width="1231" height="847" alt="屏幕截图 2026-02-11 201028" src="https://github.com/user-attachments/assets/5d2005d7-62be-447f-8a1b-da84f61e790d" />
 
