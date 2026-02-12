@@ -7,6 +7,12 @@
 # 使用说明
 - 你得有一个本地的音乐库并在**setting.py**中配置你的媒体路径
 - 编辑**import_music_file.py**中有关你的本地音乐库相关内容，让其把信息同步到你的数据库中
+- 如果想要分享给你的好友，请看一下方法
+  * 首先你的进入**setting.py**修改`ALLOWED_HOSTS = ['*']`,确保可以被其他人访问
+  * 访问[Ngrok]([https://ngrok.com "Ngrok官网")，可以免费注册
+  * 在[Ngrok]([https://ngrok.com "Ngrok官网")上找到**Your Authtoken**获取你的令牌
+  * 下载Ngrok，启动终端运行`ngrok config add-authtoken 你的令牌`
+  * 在本地运行你的项目后，打开ngrok运行`ngrok http 8000`
 # 呈现效果
 <img width="1231" height="847" alt="屏幕截图 2026-02-11 201028" src="https://github.com/user-attachments/assets/5d2005d7-62be-447f-8a1b-da84f61e790d" />
 
